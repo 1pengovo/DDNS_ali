@@ -4,9 +4,9 @@ accessKeyId:
 accessKeySecret:
 # 您的可用区ID (可以不改)
 regionId: cn-hangzhou
-# 域名名称 例如exmaple.com
+# 域名名称 例如：exmaple.com
 domainName:
-# 主机记录。如果要解析@.exmaple.com，主机记录要填写”@”，而不是空。
+# 主机记录。例如：www，@ 等。如果要解析@.exmaple.com，主机记录要填写”@”，而不是空。
 RR:
-# 解析记录的类型
+# 解析记录的类型 例如：A，CNAME 等
 recordType:
