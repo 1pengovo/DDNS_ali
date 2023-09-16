@@ -46,7 +46,7 @@ public class Main {
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
-            }, 0, interval, TimeUnit.SECONDS);
+            }, 0, interval, TimeUnit.MINUTES);
         } else {
             update();
         }

@@ -60,6 +60,7 @@ public class DnsUtils {
             UpdateDomainRecordResponse resp = client.updateDomainRecord(req);
             com.aliyun.teaconsole.Client.log("-------------------修改解析记录--------------------");
             com.aliyun.teaconsole.Client.log(com.aliyun.teautil.Common.toJSONString(TeaModel.buildMap(resp)));
+            com.aliyun.teaconsole.Client.log("修改解析记录成功");
         } catch (TeaException error) {
             com.aliyun.teaconsole.Client.log(error.message);
         } catch (Exception _error) {
