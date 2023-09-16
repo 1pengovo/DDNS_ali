@@ -15,14 +15,6 @@ public class ConfigUtils {
      */
     public static Map<String, Object> getConfig() {
         // 读取YAML文件
-//        InputStream input = ConfigUtils.class.getResourceAsStream("/config.yml");
-//        if (input != null) {
-//            Yaml yaml = new Yaml();
-//            return yaml.load(input);
-//        } else {
-//            System.err.println("无法找到配置文件 config.yml");
-//            return null;
-//        }
         try {
             String jarPath = ConfigUtils.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath();
             String jarDirectory = new File(jarPath).getParent();
