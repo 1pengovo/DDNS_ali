@@ -11,6 +11,10 @@ import com.pengovo.utils.IPUtils;
 
 public class Main {
     public static void main(String[] args) throws Exception {
+        update();
+    }
+
+    public static void update() throws Exception {
         String regionId = (String) ConfigUtils.getConfig().get("regionId");
         String domainName = (String) ConfigUtils.getConfig().get("domainName");
         String RR = (String) ConfigUtils.getConfig().get("RR");

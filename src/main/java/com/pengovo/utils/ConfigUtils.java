@@ -2,6 +2,8 @@ package com.pengovo.utils;
 
 import org.yaml.snakeyaml.Yaml;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.Map;
 
@@ -13,12 +15,28 @@ public class ConfigUtils {
      */
     public static Map<String, Object> getConfig() {
         // 读取YAML文件
-        InputStream input = ConfigUtils.class.getResourceAsStream("/config.yml");
-        if (input != null) {
+//        InputStream input = ConfigUtils.class.getResourceAsStream("/config.yml");
+//        if (input != null) {
+//            Yaml yaml = new Yaml();
+//            return yaml.load(input);
+//        } else {
+//            System.err.println("无法找到配置文件 config.yml");
+//            return null;
+//        }
+        try {
+            String jarPath = ConfigUtils.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath();
+            String jarDirectory = new File(jarPath).getParent();
+            String configFilePath = jarDirectory + File.separator + "config.yml";
+
+            // 读取YAML文件
+            InputStream input = new FileInputStream(configFilePath);
             Yaml yaml = new Yaml();
-            return yaml.load(input);
-        } else {
-            System.err.println("无法找到配置文件 config.yml");
+            Map<String, Object> yamlData = yaml.load(input);
+            // 关闭输入流
+            input.close();
+            return yamlData;
+        } catch (Exception e) {
+            e.printStackTrace();
             return null;
         }
     }
