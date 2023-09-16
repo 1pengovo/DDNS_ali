@@ -9,12 +9,52 @@ import com.pengovo.utils.ConfigUtils;
 import com.pengovo.utils.DnsUtils;
 import com.pengovo.utils.IPUtils;
 
+import java.time.LocalDateTime;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 public class Main {
+
+    private static Integer interval = null;
+
     public static void main(String[] args) throws Exception {
-        update();
+
+        for (int i = 0; i < args.length; i++) {
+            if (args[i].equals("-interval")) {
+                if (i + 1 < args.length) {
+                    interval = Integer.valueOf(args[i + 1]);
+                    if (interval <= 0) {
+                        com.aliyun.teaconsole.Client.log("-interval参数不合法，应输入大于0的整数");
+                        System.exit(1);
+                    }
+                    i++; // 跳过下一个参数，因为它是文件名
+                } else {
+                    com.aliyun.teaconsole.Client.log("-interval后缺失参数");
+                    System.exit(1);
+                }
+            }
+        }
+
+        if (interval != null) {
+            ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+
+            // 初始延迟为0秒，然后每隔多少分钟执行一次
+            scheduler.scheduleAtFixedRate(() -> {
+                try {
+                    update();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }, 0, interval, TimeUnit.SECONDS);
+        } else {
+            update();
+        }
     }
 
     public static void update() throws Exception {
+        LocalDateTime now = LocalDateTime.now();
+        com.aliyun.teaconsole.Client.log("-------------------执行更新操作，当前时间为：" + now + "--------------------");
         String regionId = (String) ConfigUtils.getConfig().get("regionId");
         String domainName = (String) ConfigUtils.getConfig().get("domainName");
         String RR = (String) ConfigUtils.getConfig().get("RR");
