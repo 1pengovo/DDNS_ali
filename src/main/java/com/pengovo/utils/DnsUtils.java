@@ -19,9 +19,9 @@ public class DnsUtils {
     public static com.aliyun.alidns20150109.Client Initialization(String regionId) throws Exception {
         Config config = new Config();
         // 您的AccessKey ID
-        config.accessKeyId = (String) ConfigUtils.getConfig().get("accessKeyId");
+        config.accessKeyId = (String) ConfigUtils.getClientConfigs().get("accessKeyId");
         // 您的AccessKey Secret
-        config.accessKeySecret = (String) ConfigUtils.getConfig().get("accessKeySecret");
+        config.accessKeySecret = (String) ConfigUtils.getClientConfigs().get("accessKeySecret");
         // 您的可用区ID
         config.regionId = regionId;
         return new com.aliyun.alidns20150109.Client(config);
