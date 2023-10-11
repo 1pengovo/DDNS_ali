@@ -8,6 +8,7 @@ import com.aliyun.tea.TeaModel;
 import com.pengovo.utils.ConfigUtils;
 import com.pengovo.utils.DnsUtils;
 import com.pengovo.utils.IPUtils;
+import lombok.extern.log4j.Log4j2;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -16,6 +17,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+@Log4j2
 public class Main {
 
     private static Integer interval = null;
@@ -65,9 +67,9 @@ public class Main {
     // 执行更新操作
     private static void update() throws Exception {
         LocalDateTime now = LocalDateTime.now();
-        log("-------------------开始执行更新操作，当前时间为：" + now + "--------------------");
+        log.info("-------------------开始执行更新操作，当前时间为：" + now + "--------------------");
         currentHostIP = IPUtils.getOutIPV4();
-        log("-------------------当前公网ip为：" + currentHostIP + "--------------------");
+        log.info("-------------------当前公网ip为：" + currentHostIP + "--------------------");
         String regionId = (String) ConfigUtils.getClientConfigs().get("regionId");
         List<Map<String, Object>> domainConfigs = ConfigUtils.getDomainConfigs();
 
@@ -84,15 +86,15 @@ public class Main {
         String RR = (String) domainConfig.get("RR");
         String recordType = (String) domainConfig.get("recordType");
 
-        log("-------------------正在更新以下配置--------------------");
-        log("Domain Name: " + domainName);
-        log("RR: " + RR);
-        log("Record Type: " + recordType);
-        log("-----------------------------------------------");
+        log.info("-------------------正在更新以下配置--------------------");
+        log.info("Domain Name: " + domainName);
+        log.info("RR: " + RR);
+        log.info("Record Type: " + recordType);
+        log.info("-----------------------------------------------");
         com.aliyun.alidns20150109.Client client = DnsUtils.Initialization(regionId);
         DescribeDomainRecordsResponse resp = DnsUtils.DescribeDomainRecords(client, domainName, RR, recordType);
         if (com.aliyun.teautil.Common.isUnset(TeaModel.buildMap(resp)) || com.aliyun.teautil.Common.isUnset(TeaModel.buildMap(resp.body.domainRecords.record.get(0)))) {
-            log("错误参数！");
+            log.error("错误参数！");
             return;
         }
         DescribeDomainRecordsResponseBody.DescribeDomainRecordsResponseBodyDomainRecordsRecord record = resp.body.domainRecords.record.get(0);
@@ -105,7 +107,7 @@ public class Main {
             UpdateDomainRecordRequest req = buildUpdateRequest(RR, recordId, currentHostIP, recordType);
             DnsUtils.UpdateDomainRecord(client, req);
         } else {
-            log("当前解析记录已是最新的了");
+            log.info("当前解析记录已是最新的了");
         }
     }
 
@@ -122,14 +124,9 @@ public class Main {
         return req;
     }
 
-    // 日志输出
-    private static void log(String message) throws Exception {
-        com.aliyun.teaconsole.Client.log(message);
-    }
-
     // 日志输出并退出程序
     private static void logAndExit(String message) throws Exception {
-        log(message);
+        log.error(message);
         System.exit(1);
     }
 }

@@ -8,8 +8,9 @@ import com.aliyun.alidns20150109.models.UpdateDomainRecordResponse;
 import com.aliyun.tea.TeaException;
 import com.aliyun.tea.TeaModel;
 import com.aliyun.teaopenapi.models.Config;
+import lombok.extern.log4j.Log4j2;
 
-
+@Log4j2
 public class DnsUtils {
 
 
@@ -40,14 +41,14 @@ public class DnsUtils {
         req.type = recordType;
         try {
             DescribeDomainRecordsResponse resp = client.describeDomainRecords(req);
-            com.aliyun.teaconsole.Client.log("-------------------获取主域名的所有解析记录列表--------------------");
-            com.aliyun.teaconsole.Client.log(com.aliyun.teautil.Common.toJSONString(TeaModel.buildMap(resp)));
+            log.info("-------------------获取主域名的所有解析记录列表--------------------");
+            log.info(com.aliyun.teautil.Common.toJSONString(TeaModel.buildMap(resp)));
             return resp;
         } catch (TeaException error) {
-            com.aliyun.teaconsole.Client.log(error.message);
+            log.error(error.message);
         } catch (Exception _error) {
             TeaException error = new TeaException(_error.getMessage(), _error);
-            com.aliyun.teaconsole.Client.log(error.message);
+            log.error(error.message);
         }
         return null;
     }
@@ -58,14 +59,14 @@ public class DnsUtils {
     public static void UpdateDomainRecord(com.aliyun.alidns20150109.Client client, UpdateDomainRecordRequest req) throws Exception {
         try {
             UpdateDomainRecordResponse resp = client.updateDomainRecord(req);
-            com.aliyun.teaconsole.Client.log("-------------------修改解析记录--------------------");
-            com.aliyun.teaconsole.Client.log(com.aliyun.teautil.Common.toJSONString(TeaModel.buildMap(resp)));
-            com.aliyun.teaconsole.Client.log("修改解析记录成功");
+            log.info("-------------------修改解析记录--------------------");
+            log.info(com.aliyun.teautil.Common.toJSONString(TeaModel.buildMap(resp)));
+            log.info("修改解析记录成功");
         } catch (TeaException error) {
-            com.aliyun.teaconsole.Client.log(error.message);
+            log.error(error.message);
         } catch (Exception _error) {
             TeaException error = new TeaException(_error.getMessage(), _error);
-            com.aliyun.teaconsole.Client.log(error.message);
+            log.error(error.message);
         }
     }
 
