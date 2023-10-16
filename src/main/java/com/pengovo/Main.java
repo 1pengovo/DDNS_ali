@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 public class Main {
 
     private static Integer interval = null;
+    private static String hostIP = null;
     private static String currentHostIP = null;
 
     public static void main(String[] args) throws Exception {
@@ -67,16 +68,28 @@ public class Main {
     // 执行更新操作
     private static void update() throws Exception {
         LocalDateTime now = LocalDateTime.now();
-        log.info("-------------------开始执行更新操作，当前时间为：" + now + "--------------------");
+        log.info("-----------------------------------------------");
+        log.info("开始执行更新操作，当前时间为：" + now);
         currentHostIP = IPUtils.getOutIPV4();
-        log.info("-------------------当前公网ip为：" + currentHostIP + "--------------------");
-        String regionId = (String) ConfigUtils.getClientConfigs().get("regionId");
-        List<Map<String, Object>> domainConfigs = ConfigUtils.getDomainConfigs();
+        log.info("当前公网ip为：" + currentHostIP);
+        log.info("上次更新公网ip为：" + hostIP);
+        if (currentHostIP.equals(hostIP)) {
+            log.info("当前公网ip未发生变化，无需更新");
+            log.info("-----------------------------------------------");
+        } else {
+            log.info("当前公网ip发生变化，开始更新");
+            String regionId = (String) ConfigUtils.getClientConfigs().get("regionId");
+            List<Map<String, Object>> domainConfigs = ConfigUtils.getDomainConfigs();
 
-        if (domainConfigs != null) {
-            for (Map<String, Object> domainConfig : domainConfigs) {
-                handleDomainUpdate(regionId, domainConfig);
+            if (domainConfigs != null && regionId != null) {
+                for (Map<String, Object> domainConfig : domainConfigs) {
+                    handleDomainUpdate(regionId, domainConfig);
+                }
+                hostIP = currentHostIP;
+            } else {
+                log.error("读取配置文件错误！");
             }
+            log.info("-----------------------------------------------");
         }
     }
 
