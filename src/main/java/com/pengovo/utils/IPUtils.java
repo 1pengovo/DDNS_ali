@@ -15,7 +15,7 @@ public class IPUtils {
      */
     public static String getOutIPV4() {
         String ip = "";
-        String chinaz = "https://ip.chinaz.com";
+        String api = "http://api.ipify.org";
 
         StringBuilder inputLine = new StringBuilder();
         String read = "";
@@ -23,7 +23,7 @@ public class IPUtils {
         HttpURLConnection urlConnection = null;
         BufferedReader in = null;
         try {
-            url = new URL(chinaz);
+            url = new URL(api);
             urlConnection = (HttpURLConnection) url.openConnection();
             in = new BufferedReader(new InputStreamReader(urlConnection.getInputStream(), "UTF-8"));
             while ((read = in.readLine()) != null) {
