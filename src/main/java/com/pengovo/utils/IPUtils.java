@@ -1,51 +1,67 @@
 package com.pengovo.utils;
 
+import lombok.extern.log4j.Log4j2;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.regex.Matcher;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.regex.Pattern;
 
+@Log4j2
 public class IPUtils {
 
+    private static final int CONNECT_TIMEOUT_MS = 5000;
+    private static final int READ_TIMEOUT_MS = 5000;
+    private static final Pattern IPV4_PATTERN = Pattern.compile("^(25[0-5]|2[0-4]\\d|1\\d{2}|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d{2}|[1-9]?\\d)){3}$");
+    private static final List<String> IPV4_SERVICES = List.of(
+            "https://api.ipify.org",
+            "https://checkip.amazonaws.com",
+            "https://ifconfig.me/ip"
+    );
+
     /**
-     * 获取外网IP
+     * 获取外网IPv4
      */
     public static String getOutIPV4() {
-        String ip = "";
-        String chinaz = "https://ip.chinaz.com";
-
-        StringBuilder inputLine = new StringBuilder();
-        String read = "";
-        URL url = null;
-        HttpURLConnection urlConnection = null;
-        BufferedReader in = null;
-        try {
-            url = new URL(chinaz);
-            urlConnection = (HttpURLConnection) url.openConnection();
-            in = new BufferedReader(new InputStreamReader(urlConnection.getInputStream(), "UTF-8"));
-            while ((read = in.readLine()) != null) {
-                inputLine.append(read + "\r\n");
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            if (in != null) {
-                try {
-                    in.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
+        for (String serviceUrl : IPV4_SERVICES) {
+            try {
+                String ip = requestIp(serviceUrl);
+                if (isValidIPv4(ip)) {
+                    return ip;
                 }
+                log.warn("公网IP服务返回结果无效，serviceUrl={}, response={}", serviceUrl, ip);
+            } catch (IOException e) {
+                log.warn("公网IP服务请求失败，serviceUrl={}", serviceUrl, e);
             }
         }
-        Pattern p = Pattern.compile("\\<dd class\\=\"fz24\">(.*?)\\<\\/dd>");
-        Matcher m = p.matcher(inputLine.toString());
-        if (m.find()) {
-            ip = m.group(1);
+        throw new IllegalStateException("无法获取公网IPv4，请检查网络或公网IP服务是否可用");
+    }
+
+    private static String requestIp(String serviceUrl) throws IOException {
+        HttpURLConnection urlConnection = null;
+        try {
+            URL url = new URL(serviceUrl);
+            urlConnection = (HttpURLConnection) url.openConnection();
+            urlConnection.setConnectTimeout(CONNECT_TIMEOUT_MS);
+            urlConnection.setReadTimeout(READ_TIMEOUT_MS);
+            urlConnection.setRequestMethod("GET");
+
+            try (BufferedReader in = new BufferedReader(new InputStreamReader(urlConnection.getInputStream(), StandardCharsets.UTF_8))) {
+                return in.readLine() == null ? "" : in.readLine().trim();
+            }
+        } finally {
+            if (urlConnection != null) {
+                urlConnection.disconnect();
+            }
         }
-        return ip;
+    }
+
+    private static boolean isValidIPv4(String ip) {
+        return ip != null && IPV4_PATTERN.matcher(ip.trim()).matches();
     }
 
 }
