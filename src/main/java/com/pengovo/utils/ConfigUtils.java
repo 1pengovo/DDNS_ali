@@ -1,6 +1,5 @@
 package com.pengovo.utils;
 
-import lombok.extern.log4j.Log4j2;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.File;
@@ -11,7 +10,6 @@ import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
 
-@Log4j2
 public class ConfigUtils {
 
     private static Map<String, Object> cachedConfig;
@@ -40,11 +38,11 @@ public class ConfigUtils {
     }
 
     public static String getAccessKeyId() {
-        return getSecretConfig("ALIYUN_ACCESS_KEY_ID", "accessKeyId");
+        return getSecretConfig(readYamlConfig(), "ALIYUN_ACCESS_KEY_ID", "accessKeyId");
     }
 
     public static String getAccessKeySecret() {
-        return getSecretConfig("ALIYUN_ACCESS_KEY_SECRET", "accessKeySecret");
+        return getSecretConfig(readYamlConfig(), "ALIYUN_ACCESS_KEY_SECRET", "accessKeySecret");
     }
 
     /**
@@ -55,15 +53,7 @@ public class ConfigUtils {
             return cachedConfig;
         }
 
-        String configFilePath;
-        try {
-            String jarPath = ConfigUtils.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath();
-            String jarDirectory = new File(jarPath).getParent();
-            configFilePath = jarDirectory + File.separator + "config.yml";
-        } catch (URISyntaxException e) {
-            throw new IllegalStateException("获取程序目录失败", e);
-        }
-
+        String configFilePath = getConfigFilePath();
         try (InputStream input = new FileInputStream(configFilePath)) {
             Yaml yaml = new Yaml();
             Map<String, Object> yamlData = yaml.load(input);
@@ -80,8 +70,8 @@ public class ConfigUtils {
 
     private static void validateConfig(Map<String, Object> config) {
         getRequiredString(config, "regionId");
-        getAccessKeyId();
-        getAccessKeySecret();
+        getSecretConfig(config, "ALIYUN_ACCESS_KEY_ID", "accessKeyId");
+        getSecretConfig(config, "ALIYUN_ACCESS_KEY_SECRET", "accessKeySecret");
 
         Object domains = config.get("domains");
         if (!(domains instanceof List) || ((List<?>) domains).isEmpty()) {
@@ -89,33 +79,21 @@ public class ConfigUtils {
         }
     }
 
-    private static String getSecretConfig(String envKey, String configKey) {
+    private static String getSecretConfig(Map<String, Object> config, String envKey, String configKey) {
         String envValue = System.getenv(envKey);
         if (envValue != null && !envValue.trim().isEmpty()) {
             return envValue.trim();
         }
-        return getRequiredString(readYamlConfigWithoutValidate(), configKey);
+        return getRequiredString(config, configKey);
     }
 
-    private static Map<String, Object> readYamlConfigWithoutValidate() {
-        if (cachedConfig != null) {
-            return cachedConfig;
-        }
-
+    private static String getConfigFilePath() {
         try {
             String jarPath = ConfigUtils.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath();
             String jarDirectory = new File(jarPath).getParent();
-            String configFilePath = jarDirectory + File.separator + "config.yml";
-            try (InputStream input = new FileInputStream(configFilePath)) {
-                Yaml yaml = new Yaml();
-                Map<String, Object> yamlData = yaml.load(input);
-                if (yamlData == null) {
-                    throw new IllegalArgumentException("config.yml内容为空");
-                }
-                return yamlData;
-            }
-        } catch (IOException | URISyntaxException e) {
-            throw new IllegalStateException("读取config.yml失败", e);
+            return jarDirectory + File.separator + "config.yml";
+        } catch (URISyntaxException e) {
+            throw new IllegalStateException("获取程序目录失败", e);
         }
     }
 
