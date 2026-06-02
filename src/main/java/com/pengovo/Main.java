@@ -4,7 +4,6 @@ package com.pengovo;
 import com.aliyun.alidns20150109.models.DescribeDomainRecordsResponse;
 import com.aliyun.alidns20150109.models.DescribeDomainRecordsResponseBody;
 import com.aliyun.alidns20150109.models.UpdateDomainRecordRequest;
-import com.aliyun.tea.TeaModel;
 import com.pengovo.utils.ConfigUtils;
 import com.pengovo.utils.DnsUtils;
 import com.pengovo.utils.IPUtils;
@@ -13,6 +12,7 @@ import lombok.extern.log4j.Log4j2;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -38,11 +38,15 @@ public class Main {
         for (int i = 0; i < args.length; i++) {
             if (args[i].equals("-interval")) {
                 if (i + 1 < args.length) {
-                    interval = Integer.valueOf(args[i + 1]);
+                    try {
+                        interval = Integer.valueOf(args[i + 1]);
+                    } catch (NumberFormatException e) {
+                        logAndExit("-interval参数不合法，应输入大于0的整数");
+                    }
                     if (interval <= 0) {
                         logAndExit("-interval参数不合法，应输入大于0的整数");
                     }
-                    i++; // 跳过下一个参数，因为它是文件名
+                    i++; // 跳过下一个参数，因为它是分钟数
                 } else {
                     logAndExit("-interval后缺失参数");
                 }
@@ -59,7 +63,7 @@ public class Main {
             try {
                 update();
             } catch (Exception e) {
-                throw new RuntimeException(e);
+                log.error("DDNS更新失败，本轮跳过，等待下次执行", e);
             }
         }, 0, interval, TimeUnit.MINUTES);
     }
@@ -67,37 +71,31 @@ public class Main {
     // 执行更新操作
     private static void update() throws Exception {
         LocalDateTime now = LocalDateTime.now();
-        log.info("-------------------开始执行更新操作，当前时间为：" + now + "--------------------");
+        log.info("-------------------开始执行更新操作，当前时间为：{}--------------------", now);
         currentHostIP = IPUtils.getOutIPV4();
-        log.info("-------------------当前公网ip为：" + currentHostIP + "--------------------");
-        String regionId = (String) ConfigUtils.getClientConfigs().get("regionId");
+        log.info("-------------------当前公网ip为：{}--------------------", currentHostIP);
+        String regionId = ConfigUtils.getRequiredString(ConfigUtils.getClientConfigs(), "regionId");
         List<Map<String, Object>> domainConfigs = ConfigUtils.getDomainConfigs();
 
-        if (domainConfigs != null) {
-            for (Map<String, Object> domainConfig : domainConfigs) {
-                handleDomainUpdate(regionId, domainConfig);
-            }
+        for (Map<String, Object> domainConfig : domainConfigs) {
+            handleDomainUpdate(regionId, domainConfig);
         }
     }
 
     // 处理单个域名更新
     private static void handleDomainUpdate(String regionId, Map<String, Object> domainConfig) throws Exception {
-        String domainName = (String) domainConfig.get("domainName");
-        String RR = (String) domainConfig.get("RR");
-        String recordType = (String) domainConfig.get("recordType");
+        String domainName = ConfigUtils.getRequiredString(domainConfig, "domainName");
+        String RR = ConfigUtils.getRequiredString(domainConfig, "RR");
+        String recordType = ConfigUtils.getRequiredString(domainConfig, "recordType");
 
-        log.info("-------------------正在更新以下配置--------------------");
-        log.info("Domain Name: " + domainName);
-        log.info("RR: " + RR);
-        log.info("Record Type: " + recordType);
-        log.info("-----------------------------------------------");
+        log.info("正在更新解析配置，domainName={}, RR={}, recordType={}", domainName, RR, recordType);
         com.aliyun.alidns20150109.Client client = DnsUtils.Initialization(regionId);
         DescribeDomainRecordsResponse resp = DnsUtils.DescribeDomainRecords(client, domainName, RR, recordType);
-        if (com.aliyun.teautil.Common.isUnset(TeaModel.buildMap(resp)) || com.aliyun.teautil.Common.isUnset(TeaModel.buildMap(resp.body.domainRecords.record.get(0)))) {
-            log.error("错误参数！");
+        DescribeDomainRecordsResponseBody.DescribeDomainRecordsResponseBodyDomainRecordsRecord record = findMatchedRecord(resp, RR, recordType);
+        if (record == null) {
+            log.error("未找到匹配的解析记录，domainName={}, RR={}, recordType={}", domainName, RR, recordType);
             return;
         }
-        DescribeDomainRecordsResponseBody.DescribeDomainRecordsResponseBodyDomainRecordsRecord record = resp.body.domainRecords.record.get(0);
         // 记录ID
         String recordId = record.recordId;
         // 记录值
@@ -106,9 +104,20 @@ public class Main {
             // 修改解析记录
             UpdateDomainRecordRequest req = buildUpdateRequest(RR, recordId, currentHostIP, recordType);
             DnsUtils.UpdateDomainRecord(client, req);
+            log.info("解析记录已更新，domainName={}, RR={}, oldIP={}, newIP={}", domainName, RR, recordsValue, currentHostIP);
         } else {
-            log.info("当前解析记录已是最新的了");
+            log.info("当前解析记录已是最新的了，domainName={}, RR={}, ip={}", domainName, RR, currentHostIP);
         }
+    }
+
+    private static DescribeDomainRecordsResponseBody.DescribeDomainRecordsResponseBodyDomainRecordsRecord findMatchedRecord(DescribeDomainRecordsResponse resp, String RR, String recordType) {
+        if (resp == null || resp.body == null || resp.body.domainRecords == null || resp.body.domainRecords.record == null) {
+            return null;
+        }
+        return resp.body.domainRecords.record.stream()
+                .filter(record -> Objects.equals(RR, record.RR) && Objects.equals(recordType, record.type))
+                .findFirst()
+                .orElse(null);
     }
 
     private static UpdateDomainRecordRequest buildUpdateRequest(String RR, String recordId, String currentHostIP, String recordType) {
