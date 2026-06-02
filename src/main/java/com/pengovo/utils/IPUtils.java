@@ -51,7 +51,8 @@ public class IPUtils {
             urlConnection.setRequestMethod("GET");
 
             try (BufferedReader in = new BufferedReader(new InputStreamReader(urlConnection.getInputStream(), StandardCharsets.UTF_8))) {
-                return in.readLine() == null ? "" : in.readLine().trim();
+                String response = in.readLine();
+                return response == null ? "" : response.trim();
             }
         } finally {
             if (urlConnection != null) {
